@@ -13,7 +13,7 @@ client = discord.Client(intents=intents)
 tasks = []  # Shared tasks list
 
 
-@client.event()
+@client.event
 async def add_task(ctx):
     await ctx.send("Enter your Task Title:")
     title = await on_message.wait_for("message", timeout=60.0)
@@ -23,7 +23,7 @@ async def add_task(ctx):
     await ctx.send("\u2713 Task created successfully.")
 
 
-@client.event()
+@client.event
 async def view_tasks(ctx):
     if tasks:
         response = "Available Tasks:\n"
@@ -34,7 +34,7 @@ async def view_tasks(ctx):
         await ctx.send("No Tasks Available.")
 
 
-@client.event()
+@client.event
 async def update_task(ctx):
     await view_tasks(ctx)  # Show current tasks
     if tasks:
@@ -68,7 +68,7 @@ async def update_task(ctx):
         await ctx.send("No Tasks Available.")
 
 
-@client.event()
+@client.event
 async def delete_task(ctx):
     await view_tasks(ctx)  # Show current tasks
     if tasks:
