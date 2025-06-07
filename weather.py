@@ -33,5 +33,9 @@ async def getCleanGeoCodeInfo(city:str) -> Coordinates:
     long = result["longitude"]
     return Coordinates(lat, long)
 
+async def getCleanWeatherInfo(city:str) -> Coordinates:
+    respDict = json.loads(city)
+    return respDict["current"]["temperature_2m"]
+
 asyncio.run(getRawWeatherInfo("50.73438","7.09549"))
 

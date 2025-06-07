@@ -3,6 +3,7 @@
 import discord
 import os
 import sys
+import weather
 
 
 intents = discord.Intents.default()
@@ -137,7 +138,13 @@ async def on_message(message):
             await message.channel.send(
                 f'Sorry "{prime_str}" is not a valid number. Try again.'
             )
-
+    if message.content.startswith("$weather"):
+        weather_str = message.content[9:]
+        rawGeoCodeInfo = await weather.getRawGeoCodeInfo(weather_str)
+        cleanGeoCodeInfo = await weather.getCleanGeoCodeInfo(rawGeoCodeInfo)
+        rawWeatherInfo = await weather.getRawWeatherInfo(cleanGeoCodeInfo.lat, cleanGeoCodeInfo.long)
+        weather_result = await weather.getCleanWeatherInfo(rawWeatherInfo)
+        await message.channel.send(weather_result)
 
 if __name__ == "__main__":
     token = os.getenv("CUSPYDO_TOKEN")
