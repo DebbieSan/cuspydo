@@ -138,11 +138,12 @@ async def on_message(message):
             )
 
 
-token = os.getenv("CUSPYDO_TOKEN")
-if not token:
-    print(
-        f"token value is {token}. Did you forget to 'source /path/to/you/.env' or 'vrun'?"
-    )
-    sys.exit(1)
-client.run(token)
-credits
+if __name__ == "__main__":
+    token = os.getenv("CUSPYDO_TOKEN")
+    if not token:
+        print(
+            f"token value is {token}. Did you forget to 'source /path/to/you/.env' or 'vrun'?"
+        )
+        sys.exit(1)
+    client.run(token)
+    credits
