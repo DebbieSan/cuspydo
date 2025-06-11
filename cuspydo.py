@@ -146,6 +146,10 @@ async def on_message(message):
         weather_result = await weather.getCleanWeatherInfo(rawWeatherInfo)
         await message.channel.send(weather_result)
 
+    if message.content.startswith("$who"):
+        prime_str = message.content[7:]
+        print("Chou is the best!")
+
 if __name__ == "__main__":
     token = os.getenv("CUSPYDO_TOKEN")
     if not token:
