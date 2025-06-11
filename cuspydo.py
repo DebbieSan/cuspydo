@@ -148,7 +148,9 @@ async def on_message(message):
 
     if message.content.startswith("$who"):
         prime_str = message.content[7:]
-        print("Chou is the best!")
+        who_result = print("Chou is the best!")
+        await message.channel.send(who_result)
+
 
 if __name__ == "__main__":
     token = os.getenv("CUSPYDO_TOKEN")
