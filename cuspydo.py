@@ -262,6 +262,13 @@ async def on_message(message):
 
     content = message.content.strip()
 
+    print(f"Received command: {content!r}")
+
+    # Keep this first while testing deployment.
+    if content.lower() == "$version":
+        await message.channel.send("Bot version: disney-debug-2")
+        return
+
     if content.lower() == "$hello":
         await message.channel.send("Hello!")
 
