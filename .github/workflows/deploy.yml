@@ -1,0 +1,85 @@
+name: Deploy Discord Bot
+
+on:
+  push:
+    branches:
+      - main
+
+  # Allows you to run the deployment manually from GitHub.
+  workflow_dispatch:
+
+# Prevent two deployments from running at the same time.
+concurrency:
+  group: cuspydo-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Download the repository onto the temporary GitHub runner.
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      # Prepare the SSH private key.
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DROPLET_SSH_KEY }}
+          DROPLET_HOST: ${{ secrets.DROPLET_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          ssh-keyscan -H "$DROPLET_HOST" >> ~/.ssh/known_hosts
+
+      # Copy the current repository files to DigitalOcean.
+      - name: Upload bot files
+        env:
+          DROPLET_HOST: ${{ secrets.DROPLET_HOST }}
+          DROPLET_USER: ${{ secrets.DROPLET_USER }}
+        run: |
+          rsync -az --delete \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude '.venv/' \
+            --exclude 'venv/' \
+            --exclude '__pycache__/' \
+            --exclude '.env' \
+            --exclude 'disney_date.json' \
+            ./ "$DROPLET_USER@$DROPLET_HOST:/home/deploy/cuspydo/"
+
+      # Create the Python environment, install packages,
+      # and restart the Discord bot.
+      - name: Install and restart bot
+        env:
+          DROPLET_HOST: ${{ secrets.DROPLET_HOST }}
+          DROPLET_USER: ${{ secrets.DROPLET_USER }}
+        run: |
+          ssh "$DROPLET_USER@$DROPLET_HOST" '
+            set -e
+
+            cd /home/deploy/cuspydo
+
+            if [ ! -d ".venv" ]; then
+              python3 -m venv .venv
+            fi
+
+            .venv/bin/python -m pip install --upgrade pip
+            .venv/bin/python -m pip install -r requirements.txt
+
+            sudo /usr/bin/systemctl restart cuspydo.service
+
+            sleep 5
+
+            if /usr/bin/systemctl is-active --quiet cuspydo.service; then
+              echo "Cuspydo is running successfully."
+            else
+              echo "Cuspydo failed to start."
+              /usr/bin/systemctl status cuspydo.service --no-pager || true
+              exit 1
+            fi
+          '
