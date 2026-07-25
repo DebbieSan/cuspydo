@@ -6,6 +6,7 @@ import sys
 import weather
 import json
 from datetime import date
+from pathlib import Path
 
 
 
@@ -118,48 +119,133 @@ assert isPrime(16_937) is True
 
 #Below code unrelated to the prime number function, but is related to the Disney trip date feature.
 
-# The file where the Disney trip date will be saved.
-DISNEY_DATE_FILE = "disney_date.json"
+# This creates disney_date.json beside this Python file.
+DISNEY_DATE_FILE = Path(__file__).resolve().parent / "disney_date.json"
 
 
 def save_disney_date(trip_date: date) -> None:
     """
-    Saves the Disney trip date to a JSON file.
-
-    isoformat() converts the date into:
-    YYYY-MM-DD
+    Save the Disney trip date to disney_date.json.
     """
 
     date_data = {
         "trip_date": trip_date.isoformat()
     }
 
-    with open(DISNEY_DATE_FILE, "w") as file:
+    with open(DISNEY_DATE_FILE, "w", encoding="utf-8") as file:
         json.dump(date_data, file, indent=4)
 
 
 def load_disney_date():
     """
-    Loads the Disney trip date from the JSON file.
+    Load the Disney trip date.
 
-    Returns None if a date has not been saved yet.
+    Returns None when the file does not exist or contains invalid data.
     """
 
     try:
-        with open(DISNEY_DATE_FILE, "r") as file:
+        with open(DISNEY_DATE_FILE, "r", encoding="utf-8") as file:
             date_data = json.load(file)
 
-        # Convert the saved text back into a date object.
         return date.fromisoformat(date_data["trip_date"])
 
     except FileNotFoundError:
-        # The file does not exist yet.
         return None
 
     except (KeyError, ValueError, json.JSONDecodeError):
-        # The file exists, but its contents are invalid.
         return None
 
+
+def calculate_disney_countdown(
+    trip_date: date,
+    current_date: date | None = None
+) -> tuple[int, str]:
+    """
+    Calculate the Disney countdown.
+
+    current_date is optional. Tests can provide a fake current date.
+    The actual Discord command uses today's real date.
+    """
+
+    if current_date is None:
+        current_date = date.today()
+
+    days_left = (trip_date - current_date).days
+    readable_date = trip_date.strftime("%B %d, %Y")
+
+    if days_left > 1:
+        response = (
+            f"🏰 **{days_left} days until Disney!** ✨\n"
+            f"Trip date: **{readable_date}**"
+        )
+
+    elif days_left == 1:
+        response = (
+            "🏰 **Only 1 day until Disney!** Start packing! ✨\n"
+            f"Trip date: **{readable_date}**"
+        )
+
+    elif days_left == 0:
+        response = (
+            "🎉 **Today is Disney day!** "
+            "Have a magical trip! 🏰"
+        )
+
+    else:
+        response = (
+            f"The Disney trip date was **{readable_date}**.\n"
+            "Set a new date with `$setdisney YYYY-MM-DD`."
+        )
+
+    return days_left, response
+
+
+def test_disney_countdown() -> None:
+    """
+    Test the countdown using fake dates.
+
+    These tests do not depend on today's actual date.
+    """
+
+    trip_date = date(2026, 12, 15)
+
+    # Test when the trip is 10 days away.
+    days_left, message = calculate_disney_countdown(
+        trip_date,
+        date(2026, 12, 5)
+    )
+
+    assert days_left == 10
+    assert "10 days until Disney" in message
+
+    # Test when the trip is tomorrow.
+    days_left, message = calculate_disney_countdown(
+        trip_date,
+        date(2026, 12, 14)
+    )
+
+    assert days_left == 1
+    assert "Only 1 day" in message
+
+    # Test Disney day.
+    days_left, message = calculate_disney_countdown(
+        trip_date,
+        date(2026, 12, 15)
+    )
+
+    assert days_left == 0
+    assert "Today is Disney day" in message
+
+    # Test after the trip.
+    days_left, message = calculate_disney_countdown(
+        trip_date,
+        date(2026, 12, 16)
+    )
+
+    assert days_left == -1
+    assert "Set a new date" in message
+
+    print("All Disney countdown tests passed!")
 
 
 @client.event
@@ -170,37 +256,35 @@ async def on_ready():
 @client.event
 async def on_message(message):
 
-    # Prevent the bot from responding to its own messages.
+    # Prevent the bot from replying to itself.
     if message.author == client.user:
         return
 
-    # Remove extra spaces from the beginning and end.
     content = message.content.strip()
 
-    if content.startswith("$hello"):
+    if content.lower() == "$hello":
         await message.channel.send("Hello!")
 
-    elif content.startswith("$best"):
+    elif content.lower() == "$best":
         await message.channel.send("Chou is the best!")
 
-    elif content.startswith("$prime"):
+    elif content.lower().startswith("$prime"):
         prime_str = content[6:].strip()
 
         try:
             prime_int = int(prime_str)
             result = isPrime(prime_int)
-            await message.channel.send(result)
+            await message.channel.send(str(result))
 
         except ValueError:
             await message.channel.send(
                 f'Sorry, "{prime_str}" is not a valid number. Try again.'
             )
 
-    elif content.startswith("$weather"):
+    elif content.lower().startswith("$weather"):
         weather_str = content[8:].strip()
 
         rawGeoCodeInfo = await weather.getRawGeoCodeInfo(weather_str)
-
         cleanGeoCodeInfo = await weather.getCleanGeoCodeInfo(
             rawGeoCodeInfo
         )
@@ -216,15 +300,14 @@ async def on_message(message):
 
         await message.channel.send(weather_result)
 
-    # Set the Disney trip date.
-    # Example: $setdisney 2026-12-15
+    # Example:
+    # $setdisney 2026-12-15
     elif content.lower().startswith("$setdisney"):
         parts = content.split(maxsplit=1)
 
-        # Check whether the user included a date.
         if len(parts) < 2:
             await message.channel.send(
-                "Please include your Disney trip date.\n"
+                "Please include a date.\n"
                 "Example: `$setdisney 2026-12-15`"
             )
             return
@@ -232,10 +315,8 @@ async def on_message(message):
         date_text = parts[1].strip()
 
         try:
-            # Convert YYYY-MM-DD text into a Python date.
             trip_date = date.fromisoformat(date_text)
 
-            # Do not allow a date that has already passed.
             if trip_date < date.today():
                 await message.channel.send(
                     "That date has already passed. "
@@ -243,10 +324,8 @@ async def on_message(message):
                 )
                 return
 
-            # Save the date to disney_date.json.
             save_disney_date(trip_date)
 
-            # Change the date into a readable format.
             readable_date = trip_date.strftime("%B %d, %Y")
 
             await message.channel.send(
@@ -257,56 +336,97 @@ async def on_message(message):
         except ValueError:
             await message.channel.send(
                 "That is not a valid date.\n"
-                "Please use `YYYY-MM-DD`.\n"
+                "Use the format `YYYY-MM-DD`.\n"
                 "Example: `$setdisney 2026-12-15`"
             )
 
-    # Display the Disney countdown.
-    elif content.lower() == "$disney":
-        trip_date = load_disney_date()
+        except Exception as error:
+            traceback.print_exc()
 
-        # No date has been saved yet.
-        if trip_date is None:
             await message.channel.send(
-                "A Disney trip date has not been set yet.\n"
-                "Use `$setdisney YYYY-MM-DD` to set one."
-            )
-            return
-
-        today = date.today()
-        days_left = (trip_date - today).days
-        readable_date = trip_date.strftime("%B %d, %Y")
-
-        if days_left > 1:
-            response = (
-                f"🏰 **{days_left} days until Disney!** ✨\n"
-                f"Trip date: **{readable_date}**"
+                "Something went wrong while saving the date.\n"
+                f"Error: `{type(error).__name__}: {error}`"
             )
 
-        elif days_left == 1:
-            response = (
-                "🏰 **Only 1 day until Disney!** "
-                "Start packing! ✨\n"
-                f"Trip date: **{readable_date}**"
+    # Show the countdown.
+    elif content.lower() == "$disney":
+        try:
+            trip_date = load_disney_date()
+
+            if trip_date is None:
+                await message.channel.send(
+                    "I could not find a saved Disney date.\n"
+                    "Set one with `$setdisney YYYY-MM-DD`."
+                )
+                return
+
+            days_left, response = calculate_disney_countdown(
+                trip_date
             )
 
-        elif days_left == 0:
-            response = (
-                "🎉 **Today is Disney day!** "
-                "Have a magical trip! 🏰"
+            await message.channel.send(response)
+
+        except Exception as error:
+            # Print the complete error in the terminal.
+            traceback.print_exc()
+
+            await message.channel.send(
+                "The Disney countdown encountered an error.\n"
+                f"Error: `{type(error).__name__}: {error}`"
             )
 
-        else:
-            response = (
-                f"The Disney trip was scheduled for "
-                f"**{readable_date}**.\n"
-                "Set a new date with `$setdisney YYYY-MM-DD`."
+    # Diagnostic command.
+    elif content.lower() == "$testdisney":
+        try:
+            trip_date = load_disney_date()
+
+            test_results = [
+                "🧪 **Disney Countdown Test**",
+                f"Today: `{date.today().isoformat()}`",
+                f"Save file: `{DISNEY_DATE_FILE}`",
+                f"File exists: `{DISNEY_DATE_FILE.exists()}`"
+            ]
+
+            if trip_date is None:
+                test_results.append("Loaded trip date: `None`")
+                test_results.append(
+                    "❌ No valid Disney date was found."
+                )
+
+            else:
+                days_left, response = calculate_disney_countdown(
+                    trip_date
+                )
+
+                test_results.append(
+                    f"Loaded trip date: `{trip_date.isoformat()}`"
+                )
+
+                test_results.append(
+                    f"Calculated days left: `{days_left}`"
+                )
+
+                test_results.append(
+                    "✅ The countdown calculation is working."
+                )
+
+            await message.channel.send("\n".join(test_results))
+
+        except Exception as error:
+            traceback.print_exc()
+
+            await message.channel.send(
+                "❌ The Disney test failed.\n"
+                f"Error type: `{type(error).__name__}`\n"
+                f"Error message: `{error}`"
             )
 
-        await message.channel.send(response)
 
-        if __name__ == "__main__":
-                token = os.getenv("CUSPYDO_TOKEN")
+if __name__ == "__main__":
+    # Run the automatic countdown tests first.
+    test_disney_countdown()
+
+    token = os.getenv("CUSPYDO_TOKEN")
 
     if not token:
         print(
