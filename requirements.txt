@@ -5,8 +5,12 @@ attrs==24.3.0
 discord.py==2.4.0
 frozenlist==1.5.0
 idna==3.10
+iniconfig==2.1.0
 multidict==6.1.0
+packaging==25.0
+pluggy==1.6.0
 propcache==0.2.1
+Pygments==2.19.1
+pytest==8.4.0
 pytest-asyncio==1.0.0
 yarl==1.18.3
-

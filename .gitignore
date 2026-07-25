@@ -169,3 +169,9 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+
+#feature files
+__pycache__/
+*.pyc
+disney_date.json

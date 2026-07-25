@@ -120,8 +120,12 @@ assert isPrime(16_937) is True
 #Below code unrelated to the prime number function, but is related to the Disney trip date feature.
 
 # This creates disney_date.json beside this Python file.
-DISNEY_DATE_FILE = Path(__file__).resolve().parent / "disney_date.json"
-
+DISNEY_DATE_FILE = Path(
+    os.getenv(
+        "DISNEY_DATE_FILE",
+        str(Path(__file__).resolve().parent / "disney_date.json"),
+    )
+)
 
 def save_disney_date(trip_date: date) -> None:
     """
