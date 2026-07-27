@@ -392,14 +392,14 @@ async def on_message(message):
             trip_date = load_disney_date()
 
             test_results = [
-                "🧪 **Disney Countdown Test**",
+                "📋**Disney Countdown Test**",
                 f"Today: `{date.today().isoformat()}`",
                 f"Save file: `{DISNEY_DATE_FILE}`",
                 f"File exists: `{DISNEY_DATE_FILE.exists()}`"
             ]
 
             if trip_date is None:
-                test_results.append("Loaded trip date: `None`")
+                test_results.append("Loaded trip date: `None`")  
                 test_results.append(
                     "❌ No valid Disney date was found."
                 )
