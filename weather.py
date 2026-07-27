@@ -262,7 +262,7 @@ async def getCleanWeatherInfo(
 
     # Start building the Discord message.
     lines = [
-        f"🌤️ **Weather for {location.title()}**"
+        f"**Weather for {location.title()}**"
     ]
 
     if "conditions" in selected_features:
