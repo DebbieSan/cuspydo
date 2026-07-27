@@ -501,7 +501,7 @@ async def on_message(message):
             await message.channel.send(str(error))
 
         except Exception as error:
-            # This full error will appear in your systemd logs.
+            # This full error will appear in systemd logs.
             print(f"Weather command error: {error}")
 
             await message.channel.send(
