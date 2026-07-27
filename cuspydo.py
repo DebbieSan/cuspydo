@@ -5,6 +5,7 @@ import os
 import sys
 import weather
 import json
+import asyncio
 from datetime import date
 from pathlib import Path
 
@@ -117,6 +118,51 @@ assert isPrime(1) is False
 assert isPrime(0) is False
 assert isPrime(-5) is False
 assert isPrime(16_937) is True
+
+
+# A little timer
+
+def convert_timer_to_seconds(timer_text: str) -> int:
+    """
+    Convert a timer such as 10s, 5m, or 2h into seconds.
+
+    Examples:
+        10s becomes 10 seconds
+        5m becomes 300 seconds
+        2h becomes 7200 seconds
+    """
+
+    timer_text = timer_text.lower().strip()
+
+    # The final character tells the unit.
+    unit = timer_text[-1]
+
+    # Everything before the final character should be the number.
+    amount = int(timer_text[:-1])
+
+    if unit == "s":
+        return amount
+
+    if unit == "m":
+        return amount * 60
+
+    if unit == "h":
+        return amount * 60 * 60
+
+    # Raise an error if the user did not enter s, m, or h.
+    raise ValueError("Invalid timer unit")
+
+
+async def run_timer(message, seconds: int, timer_name: str):
+    """
+    Wait for the timer to finish and then notify the channel.
+    """
+
+    await asyncio.sleep(seconds)
+
+    await message.channel.send(
+        f"{message.author.mention}, your timer for {timer_name} is finished."
+    )
 
 #weather functions - these are in a separate file, but are imported here.
 
@@ -417,6 +463,18 @@ async def on_message(message):
             inline=False
         )
 
+        help_embed.add_field(
+    name="$timer <duration> [description]",
+    value=(
+        "Starts a timer and notifies the channel when it finishes.\n"
+        "Use `s` for seconds, `m` for minutes, or `h` for hours.\n\n"
+        "Examples:\n"
+        "`$timer 30s`\n"
+        "`$timer 5m Check the oven`\n"
+        "`$timer 2h Laundry`"
+    ),
+    inline=False
+)
 
         help_embed.add_field(
             name="$help",
@@ -446,8 +504,14 @@ async def on_message(message):
     elif command == "$best":
         await message.channel.send("Chou is the best!")
 
-    if command == "$who":
-            await message.channel.send("I am Cuspydo!I am the cutest bot on discord! I can help you with tasks, check prime numbers, and even give you the weather! Type $help to see what I can do!")
+    elif command == "$who":
+        await message.channel.send(
+            "I am Cuspydo!I am the cutest bot on discord! I can help you with tasks, "
+            "check prime numbers, and even give you the weather! Type $help to see "
+            "what I can do!"
+        )
+
+# prime section
 
     elif command.startswith("$prime"):
         prime_str = content[6:].strip()
@@ -462,7 +526,75 @@ async def on_message(message):
                 f'Sorry, "{prime_str}" is not a valid number. Try again.'
             )
 
-    # weather section
+#timer section
+
+    elif content.lower().startswith("$timer"):
+        # Split the message into a maximum of three parts.
+        #
+        # Example:
+        # "$timer 10m Check github" becomes:
+        #
+        # parts[0] = "$timer"
+        # parts[1] = "10m"
+        # parts[2] = "Check github"
+
+        parts = message.content.split(maxsplit=2)
+
+        # Make sure the user included a timer duration.
+        if len(parts) < 2:
+            await message.channel.send(
+                "Please enter a timer duration.\n"
+                "Examples: `$timer 10s`, `$timer 5m`, or `$timer 2h`."
+            )
+            return
+
+        timer_text = parts[1]
+
+        # Use the optional description if the user entered one.
+        if len(parts) == 3:
+            timer_name = parts[2]
+        else:
+            timer_name = timer_text
+
+        try:
+            seconds = convert_timer_to_seconds(timer_text)
+
+        except (ValueError, IndexError):
+            await message.channel.send(
+                "Invalid timer format. Use `s` for seconds, `m` for minutes, "
+                "or `h` for hours.\n"
+                "Examples: `$timer 10s`, `$timer 5m`, or `$timer 2h`."
+            )
+            return
+
+        # Prevent zero or negative timers.
+        if seconds <= 0:
+            await message.channel.send(
+                "The timer must be longer than zero seconds."
+            )
+            return
+
+        # Safety limit: 24 hours.
+        if seconds > 86400:
+            await message.channel.send(
+                "Timers cannot be longer than 24 hours."
+            )
+            return
+
+        # Confirm that the timer started.
+        await message.channel.send(
+            f"{message.author.mention}, your timer for {timer_name} has started. "
+            f"Duration: {timer_text}."
+        )
+
+        # Start the timer as a separate background task.
+        asyncio.create_task(
+            run_timer(message, seconds, timer_name)
+        )
+
+        return
+
+# weather section
 
     elif (
         command == "$weather"
@@ -510,6 +642,8 @@ async def on_message(message):
             await message.channel.send(
                 "I couldn't retrieve the weather right now."
             )
+
+    # disney countdown section
 
     # Example:
     # $setdisney 2026-12-15
