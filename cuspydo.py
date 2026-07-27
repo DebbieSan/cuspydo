@@ -437,7 +437,7 @@ async def on_message(message):
     command = content.lower()
 
     if command == "$version":
-        await message.channel.send("Bot version: help 26.5.0")
+        await message.channel.send("Bot version: help 26.7.0")
         return
 
     if command == "$hello":
@@ -445,6 +445,9 @@ async def on_message(message):
 
     elif command == "$best":
         await message.channel.send("Chou is the best!")
+
+    if command == "$who":
+            await message.channel.send("I am Cuspydo!I am the cutest bot on discord! I can help you with tasks, check prime numbers, and even give you the weather! Type $help to see what I can do!")
 
     elif command.startswith("$prime"):
         prime_str = content[6:].strip()
