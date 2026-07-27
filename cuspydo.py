@@ -268,9 +268,78 @@ async def on_message(message):
 
     print(f"Received command: {content!r}")
 
-    # Keep this first while testing deployment.
+@client.event
+async def on_message(message):
+    # Prevent the bot from responding to its own messages
+    if message.author == client.user:
+        return
+
+    # Remove extra spaces and make command checking case-insensitive
+    command = message.content.strip().lower()
+
+    # Display the help menu
+    if command == "$help":
+        help_embed = discord.Embed(
+            title="Cuspydo Help",
+            description="Here are the commands currently available:",
+            color=0xD4A72C
+        )
+
+        help_embed.add_field(
+            name="$hello",
+            value="Cuspydo says hello!",
+            inline=False
+        )
+
+        help_embed.add_field(
+            name="$best",
+            value="Find out who Cuspydo thinks is the best.",
+            inline=False
+        )
+
+        help_embed.add_field(
+            name="$prime <number>",
+            value="Checks whether a number is a prime number.\nExample: `$prime 17`",
+            inline=False
+        )
+
+        help_embed.add_field(
+            name="$weather <location>",
+            value="Shows the current weather for a location.\nExample: `$weather Calgary`",
+            inline=False
+        )
+
+
+        help_embed.add_field(
+            name="$setdisney",
+            value="Sets the date for your upcoming Disney trip.",
+            inline=False
+        )
+
+        help_embed.add_field(
+            name="$disney",
+            value="Shows the countdown to your upcoming Disney trip.",
+            inline=False
+        )
+
+
+        help_embed.add_field(
+            name="$help",
+            value="Displays this list of commands.",
+            inline=False
+        )
+
+        help_embed.set_footer(
+            text="Cuspydo • More features coming soon!"
+        )
+
+        await message.channel.send(embed=help_embed)
+
+
+
+    
     if content.lower() == "$version":
-        await message.channel.send("Bot version: disney-debug-2")
+        await message.channel.send("Bot version: help 26.3.0")
         return
 
     if content.lower() == "$hello":
