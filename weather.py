@@ -282,7 +282,7 @@ async def getCleanWeatherInfo(
 
         if temperature is not None:
             lines.append(
-                f"🌡️ **Temperature:** "
+                f"**Temperature:** "
                 f"{temperature:.1f}{temperature_unit}"
             )
 
@@ -291,7 +291,7 @@ async def getCleanWeatherInfo(
 
         if feels_like is not None:
             lines.append(
-                f"🤔 **Feels like:** "
+                f"**Feels like:** "
                 f"{feels_like:.1f}{temperature_unit}"
             )
 
@@ -300,7 +300,7 @@ async def getCleanWeatherInfo(
 
         if humidity is not None:
             lines.append(
-                f"💧 **Humidity:** {humidity}%"
+                f"**Humidity:** {humidity}%"
             )
 
     if "wind" in selected_features:
@@ -326,7 +326,7 @@ async def getCleanWeatherInfo(
                 )
 
             lines.append(
-                f"💨 **Wind:** {wind_text}"
+                f"**Wind:** {wind_text}"
             )
 
     if "rain" in selected_features:
@@ -334,7 +334,7 @@ async def getCleanWeatherInfo(
 
         if precipitation is not None:
             lines.append(
-                f"🌧️ **Precipitation:** "
+                f"**Precipitation:** "
                 f"{precipitation:.2f} "
                 f"{precipitation_unit}"
             )
@@ -344,7 +344,7 @@ async def getCleanWeatherInfo(
 
         if cloud_cover is not None:
             lines.append(
-                f"☁️ **Cloud cover:** {cloud_cover}%"
+                f"**Cloud cover:** {cloud_cover}%"
             )
 
     if "pressure" in selected_features:
@@ -352,7 +352,7 @@ async def getCleanWeatherInfo(
 
         if pressure is not None:
             lines.append(
-                f"🧭 **Pressure:** "
+                f"**Pressure:** "
                 f"{pressure:.1f} {pressure_unit}"
             )
 
