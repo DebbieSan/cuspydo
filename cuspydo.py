@@ -94,6 +94,7 @@ async def delete_task(ctx):
     else:
         await ctx.send("No Tasks Available.")
 
+#Prime number checker - this was what got the bot started!
 
 def isPrime(number: int) -> bool:
     if number <= 1:
@@ -117,7 +118,102 @@ assert isPrime(0) is False
 assert isPrime(-5) is False
 assert isPrime(16_937) is True
 
-#Below code unrelated to the prime number function, but is related to the Disney trip date feature.
+#weather functions - these are in a separate file, but are imported here.
+
+# Unit words accepted by the weather command.
+WEATHER_UNITS = {
+    "c": "c",
+    "celsius": "c",
+    "f": "f",
+    "fahrenheit": "f"
+}
+
+
+# Weather feature words accepted by the command.
+WEATHER_FEATURES = {
+    "summary": "summary",
+    "conditions": "conditions",
+    "temp": "temperature",
+    "temperature": "temperature",
+    "feels": "feels",
+    "humidity": "humidity",
+    "wind": "wind",
+    "rain": "rain",
+    "precipitation": "rain",
+    "clouds": "clouds",
+    "pressure": "pressure",
+    "all": "all"
+}
+
+
+def parseWeatherCommand(content: str):
+    """
+    Separate a weather command into:
+
+    location
+    temperature unit
+    requested weather features
+
+    Example:
+        $weather New York f wind humidity
+    """
+
+    # Remove "$weather" and split the remaining words.
+    arguments = content[len("$weather"):].strip().split()
+
+    if not arguments:
+        raise ValueError(
+            "Please include a location.\n"
+            "Example: `$weather Calgary f all`"
+        )
+
+    # Celsius is the default.
+    unit = "c"
+
+    features = []
+
+    valid_options = (
+        set(WEATHER_UNITS) |
+        set(WEATHER_FEATURES)
+    )
+
+    # Read weather options from the end of the command.
+    #
+    # In:
+    # $weather New York f wind
+    #
+    # "wind" and "f" are options.
+    # "New York" remains the location.
+    while (
+        arguments and
+        arguments[-1].lower() in valid_options
+    ):
+        option = arguments.pop().lower()
+
+        if option in WEATHER_UNITS:
+            unit = WEATHER_UNITS[option]
+
+        else:
+            feature = WEATHER_FEATURES[option]
+
+            if feature not in features:
+                features.append(feature)
+
+    location = " ".join(arguments).strip()
+
+    if not location:
+        raise ValueError(
+            "Please include a location before "
+            "the weather options."
+        )
+
+    # Display the basic summary when no feature is specified.
+    if not features:
+        features = ["summary"]
+
+    return location, unit, features
+
+#Disney Countdown
 
 # This creates disney_date.json beside this Python file.
 DISNEY_DATE_FILE = Path(
@@ -256,18 +352,6 @@ def test_disney_countdown() -> None:
 async def on_ready():
     print(f"We have logged in as {client.user}")
 
-
-@client.event
-async def on_message(message):
-
-    # Prevent the bot from replying to itself.
-    if message.author == client.user:
-        return
-
-    content = message.content.strip()
-
-    print(f"Received command: {content!r}")
-
 @client.event
 async def on_message(message):
     # Prevent the bot from responding to its own messages
@@ -304,9 +388,20 @@ async def on_message(message):
         )
 
         help_embed.add_field(
-            name="$weather <location>",
-            value="Shows the current weather for a location.\nExample: `$weather Calgary`",
-            inline=False
+            name="$weather <location> [c|f] [features]",
+            value=(
+        "Shows current weather for a location.\n\n"
+        "**Features:**\n"
+        "`conditions`, `temp`, `feels`, `humidity`, "
+        "`wind`, `rain`, `clouds`, `pressure`, `all`\n\n"
+        "**Examples:**\n"
+        "`$weather Banff`\n"
+        "`$weather Jasper f`\n"
+        "`$weather Jasper c humidity`\n"
+        "`$weather New York f wind pressure`\n"
+        "`$weather Anaheim c all`"
+         ),
+        inline=False
         )
 
 
@@ -338,17 +433,20 @@ async def on_message(message):
 
 
     
-    if content.lower() == "$version":
-        await message.channel.send("Bot version: help 26.3.0")
+    content = message.content.strip()
+    command = content.lower()
+
+    if command == "$version":
+        await message.channel.send("Bot version: help 26.5.0")
         return
 
-    if content.lower() == "$hello":
+    if command == "$hello":
         await message.channel.send("Hello!")
 
-    elif content.lower() == "$best":
+    elif command == "$best":
         await message.channel.send("Chou is the best!")
 
-    elif content.lower().startswith("$prime"):
+    elif command.startswith("$prime"):
         prime_str = content[6:].strip()
 
         try:
@@ -361,28 +459,58 @@ async def on_message(message):
                 f'Sorry, "{prime_str}" is not a valid number. Try again.'
             )
 
-    elif content.lower().startswith("$weather"):
-        weather_str = content[8:].strip()
+    # weather section
 
-        rawGeoCodeInfo = await weather.getRawGeoCodeInfo(weather_str)
-        cleanGeoCodeInfo = await weather.getCleanGeoCodeInfo(
-            rawGeoCodeInfo
-        )
+    elif (
+        command == "$weather"
+        or command.startswith("$weather ")
+    ):
+        try:
+            # Separate the location, unit, and requested features.
+            weather_str, unit, features = parseWeatherCommand(
+                content
+            )
 
-        rawWeatherInfo = await weather.getRawWeatherInfo(
-            cleanGeoCodeInfo.lat,
-            cleanGeoCodeInfo.long
-        )
+            rawGeoCodeInfo = await weather.getRawGeoCodeInfo(
+                weather_str
+            )
 
-        weather_result = await weather.getCleanWeatherInfo(
-            rawWeatherInfo
-        )
+            cleanGeoCodeInfo = await weather.getCleanGeoCodeInfo(
+                rawGeoCodeInfo
+            )
 
-        await message.channel.send(weather_result)
+            # Pass the requested C/F unit to Open-Meteo.
+            rawWeatherInfo = await weather.getRawWeatherInfo(
+                cleanGeoCodeInfo.lat,
+                cleanGeoCodeInfo.long,
+                unit
+            )
+
+            # Format only the requested features.
+            weather_result = await weather.getCleanWeatherInfo(
+                rawWeatherInfo,
+                weather_str,
+                unit,
+                features
+            )
+
+            await message.channel.send(weather_result)
+
+        except ValueError as error:
+            # Friendly errors, such as an unknown location.
+            await message.channel.send(str(error))
+
+        except Exception as error:
+            # This full error will appear in your systemd logs.
+            print(f"Weather command error: {error}")
+
+            await message.channel.send(
+                "I couldn't retrieve the weather right now."
+            )
 
     # Example:
     # $setdisney 2026-12-15
-    elif content.lower().startswith("$setdisney"):
+    elif command.startswith("$setdisney"):
         parts = content.split(maxsplit=1)
 
         if len(parts) < 2:
