@@ -144,7 +144,7 @@ def convert_timer_to_seconds(timer_text: str) -> int:
         return amount
 
     if unit == "m":
-        return amount * 60
+        return amount * 60  
 
     if unit == "h":
         return amount * 60 * 60
@@ -259,140 +259,6 @@ def parseWeatherCommand(content: str):
 
     return location, unit, features
 
-#Disney Countdown
-
-# This creates disney_date.json beside this Python file.
-DISNEY_DATE_FILE = Path(
-    os.getenv(
-        "DISNEY_DATE_FILE",
-        str(Path(__file__).resolve().parent / "disney_date.json"),
-    )
-)
-
-def save_disney_date(trip_date: date) -> None:
-    """
-    Save the Disney trip date to disney_date.json.
-    """
-
-    date_data = {
-        "trip_date": trip_date.isoformat()
-    }
-
-    with open(DISNEY_DATE_FILE, "w", encoding="utf-8") as file:
-        json.dump(date_data, file, indent=4)
-
-
-def load_disney_date():
-    """
-    Load the Disney trip date.
-
-    Returns None when the file does not exist or contains invalid data.
-    """
-
-    try:
-        with open(DISNEY_DATE_FILE, "r", encoding="utf-8") as file:
-            date_data = json.load(file)
-
-        return date.fromisoformat(date_data["trip_date"])
-
-    except FileNotFoundError:
-        return None
-
-    except (KeyError, ValueError, json.JSONDecodeError):
-        return None
-
-
-def calculate_disney_countdown(
-    trip_date: date,
-    current_date: date | None = None
-) -> tuple[int, str]:
-    """
-    Calculate the Disney countdown.
-
-    current_date is optional. Tests can provide a fake current date.
-    The actual Discord command uses today's real date.
-    """
-
-    if current_date is None:
-        current_date = date.today()
-
-    days_left = (trip_date - current_date).days
-    readable_date = trip_date.strftime("%B %d, %Y")
-
-    if days_left > 1:
-        response = (
-            f"🏰 **{days_left} days until Disney!** ✨\n"
-            f"Trip date: **{readable_date}**"
-        )
-
-    elif days_left == 1:
-        response = (
-            "🏰 **Only 1 day until Disney!** Start packing! ✨\n"
-            f"Trip date: **{readable_date}**"
-        )
-
-    elif days_left == 0:
-        response = (
-            "🎉 **Today is Disney day!** "
-            "Have a magical trip! 🏰"
-        )
-
-    else:
-        response = (
-            f"The Disney trip date was **{readable_date}**.\n"
-            "Set a new date with `$setdisney YYYY-MM-DD`."
-        )
-
-    return days_left, response
-
-
-def test_disney_countdown() -> None:
-    """
-    Test the countdown using fake dates.
-
-    These tests do not depend on today's actual date.
-    """
-
-    trip_date = date(2026, 12, 15)
-
-    # Test when the trip is 10 days away.
-    days_left, message = calculate_disney_countdown(
-        trip_date,
-        date(2026, 12, 5)
-    )
-
-    assert days_left == 10
-    assert "10 days until Disney" in message
-
-    # Test when the trip is tomorrow.
-    days_left, message = calculate_disney_countdown(
-        trip_date,
-        date(2026, 12, 14)
-    )
-
-    assert days_left == 1
-    assert "Only 1 day" in message
-
-    # Test Disney day.
-    days_left, message = calculate_disney_countdown(
-        trip_date,
-        date(2026, 12, 15)
-    )
-
-    assert days_left == 0
-    assert "Today is Disney day" in message
-
-    # Test after the trip.
-    days_left, message = calculate_disney_countdown(
-        trip_date,
-        date(2026, 12, 16)
-    )
-
-    assert days_left == -1
-    assert "Set a new date" in message
-
-    print("All Disney countdown tests passed!")
-
 
 @client.event
 async def on_ready():
@@ -422,12 +288,6 @@ async def on_message(message):
         )
 
         help_embed.add_field(
-            name="$best",
-            value="Find out who Cuspydo thinks is the best.",
-            inline=False
-        )
-
-        help_embed.add_field(
             name="$prime <number>",
             value="Checks whether a number is a prime number.\nExample: `$prime 17`",
             inline=False
@@ -450,18 +310,6 @@ async def on_message(message):
         inline=False
         )
 
-
-        help_embed.add_field(
-            name="$setdisney",
-            value="Sets the date for your upcoming Disney trip.",
-            inline=False
-        )
-
-        help_embed.add_field(
-            name="$disney",
-            value="Shows the countdown to your upcoming Disney trip.",
-            inline=False
-        )
 
         help_embed.add_field(
     name="$timer <duration> [description]",
@@ -641,129 +489,6 @@ async def on_message(message):
 
             await message.channel.send(
                 "I couldn't retrieve the weather right now."
-            )
-
-    # disney countdown section
-
-    # Example:
-    # $setdisney 2026-12-15
-    elif command.startswith("$setdisney"):
-        parts = content.split(maxsplit=1)
-
-        if len(parts) < 2:
-            await message.channel.send(
-                "Please include a date.\n"
-                "Example: `$setdisney 2026-12-15`"
-            )
-            return
-
-        date_text = parts[1].strip()
-
-        try:
-            trip_date = date.fromisoformat(date_text)
-
-            if trip_date < date.today():
-                await message.channel.send(
-                    "That date has already passed. "
-                    "Please enter a future date."
-                )
-                return
-
-            save_disney_date(trip_date)
-
-            readable_date = trip_date.strftime("%B %d, %Y")
-
-            await message.channel.send(
-                f"🏰 Disney trip date set to "
-                f"**{readable_date}**! ✨"
-            )
-
-        except ValueError:
-            await message.channel.send(
-                "That is not a valid date.\n"
-                "Use the format `YYYY-MM-DD`.\n"
-                "Example: `$setdisney 2026-12-15`"
-            )
-
-        except Exception as error:
-            traceback.print_exc()
-
-            await message.channel.send(
-                "Something went wrong while saving the date.\n"
-                f"Error: `{type(error).__name__}: {error}`"
-            )
-
-    # Show the countdown.
-    elif content.lower() == "$disney":
-        try:
-            trip_date = load_disney_date()
-
-            if trip_date is None:
-                await message.channel.send(
-                    "I could not find a saved Disney date.\n"
-                    "Set one with `$setdisney YYYY-MM-DD`."
-                )
-                return
-
-            days_left, response = calculate_disney_countdown(
-                trip_date
-            )
-
-            await message.channel.send(response)
-
-        except Exception as error:
-            # Print the complete error in the terminal.
-            traceback.print_exc()
-
-            await message.channel.send(
-                "The Disney countdown encountered an error.\n"
-                f"Error: `{type(error).__name__}: {error}`"
-            )
-
-    # Diagnostic command.
-    elif content.lower() == "$testdisney":
-        try:
-            trip_date = load_disney_date()
-
-            test_results = [
-                "📋**Disney Countdown Test**",
-                f"Today: `{date.today().isoformat()}`",
-                f"Save file: `{DISNEY_DATE_FILE}`",
-                f"File exists: `{DISNEY_DATE_FILE.exists()}`"
-            ]
-
-            if trip_date is None:
-                test_results.append("Loaded trip date: `None`")  
-                test_results.append(
-                    "❌ No valid Disney date was found."
-                )
-
-            else:
-                days_left, response = calculate_disney_countdown(
-                    trip_date
-                )
-
-                test_results.append(
-                    f"Loaded trip date: `{trip_date.isoformat()}`"
-                )
-
-                test_results.append(
-                    f"Calculated days left: `{days_left}`"
-                )
-
-                test_results.append(
-                    "✅ The countdown calculation is working."
-                )
-
-            await message.channel.send("\n".join(test_results))
-
-        except Exception as error:
-            traceback.print_exc()
-
-            await message.channel.send(
-                "❌ The Disney test failed.\n"
-                f"Error type: `{type(error).__name__}`\n"
-                f"Error message: `{error}`"
             )
 
 
