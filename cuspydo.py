@@ -493,9 +493,6 @@ async def on_message(message):
 
 
 if __name__ == "__main__":
-    # Run the automatic countdown tests first.
-    test_disney_countdown()
-
     token = os.getenv("CUSPYDO_TOKEN")
 
     if not token:
