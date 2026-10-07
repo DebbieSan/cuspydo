@@ -16,84 +16,20 @@ intents.message_content = True
 
 client = discord.Client(intents=intents)
 
-tasks = []  # Shared tasks list
+TODO_FILE = Path("todos.json")
 
+def load_todos():
+    if TODO_FILE.exists():
+        with open(TODO_FILE, "r") as file:
+            return json.load(file)
 
-@client.event
-async def add_task(ctx):
-    await ctx.send("Enter your Task Title:")
-    title = await on_message.wait_for("message", timeout=60.0)
-    await ctx.send("Enter your Task Description:")
-    description = await on_ready.wait_for("message", timeout=60.0)
-    tasks.append({"Task Title": title.content, "Task Description": description.content})
-    await ctx.send("\u2713 Task created successfully.")
+    return {}
 
+def save_todos(todos):
+    with open(TODO_FILE, "w") as file:
+        json.dump(todos, file, indent=4)
 
-@client.event
-async def view_tasks(ctx):
-    if tasks:
-        response = "Available Tasks:\n"
-        for idx, task in enumerate(tasks, start=1):
-            response += f"{idx}. Task Title: {task['Task Title']}, Task Description: {task['Task Description']}\n"
-        await ctx.send(response)
-    else:
-        await ctx.send("No Tasks Available.")
-
-
-@client.event
-async def update_task(ctx):
-    await view_tasks(ctx)  # Show current tasks
-    if tasks:
-        await ctx.send("Provide the Index of the task to update:")
-        try:
-            index_msg = await on_message.wait_for("message", timeout=60.0)
-            index = int(index_msg.content) - 1
-            if 0 <= index < len(tasks):
-                await ctx.send(
-                    "Provide a new title or (type 'skip' to keep current title):"
-                )
-                new_title_msg = await on_message.wait_for("message", timeout=60.0)
-                await ctx.send(
-                    "Provide a new description or (type 'skip' to keep current description):"
-                )
-                new_desc_msg = await on_message.wait_for("message", timeout=60.0)
-
-                if new_title_msg.content.lower() != "skip":
-                    tasks[index]["Task Title"] = new_title_msg.content
-                if new_desc_msg.content.lower() != "skip":
-                    tasks[index]["Task Description"] = new_desc_msg.content
-
-                await ctx.send("Task updated successfully.")
-            else:
-                await ctx.send("Invalid index.")
-        except ValueError:
-            await ctx.send("Invalid input. Please enter a number.")
-        except on_message.TimeoutError:
-            await ctx.send("You took too long to respond. Please try again.")
-    else:
-        await ctx.send("No Tasks Available.")
-
-
-@client.event
-async def delete_task(ctx):
-    await view_tasks(ctx)  # Show current tasks
-    if tasks:
-        await ctx.send("Provide the Index of the task to delete:")
-        try:
-            index_msg = await on_message.wait_for("message", timeout=60.0)
-            index = int(index_msg.content) - 1
-            if 0 <= index < len(tasks):
-                deleted_task = tasks.pop(index)
-                await ctx.send(
-                    f"Task '{deleted_task['Task Title']}' deleted successfully."
-                )
-            else:
-                await ctx.send("Invalid index.")
-        except ValueError:
-            await ctx.send("Invalid input. Please enter a number.")
-
-    else:
-        await ctx.send("No Tasks Available.")
+todos = load_todos()
 
 #Prime number checker - this was what got the bot started!
 
@@ -269,6 +205,7 @@ async def on_message(message):
     # Prevent the bot from responding to its own messages
     if message.author == client.user:
         return
+    user_id = str(message.author.id)
 
     # Remove extra spaces and make command checking case-insensitive
     command = message.content.strip().lower()
@@ -323,6 +260,23 @@ async def on_message(message):
     ),
     inline=False
 )
+        help_embed.add_field(
+    name="$todo",
+    value=(
+        "Manage your personal to-do list.\n\n"
+        "**Commands:**\n"
+        "`$todo add <task>` - Add a new task\n"
+        "`$todo list` - Show your personal tasks\n"
+        "`$todo done <number>` - Mark a task as complete\n"
+        "`$todo delete <number>` - Delete a task\n\n"
+        "**Examples:**\n"
+        "`$todo add Study graphs`\n"
+        "`$todo list`\n"
+        "`$todo done 1`\n"
+        "`$todo delete 2`"
+    ),
+    inline=False
+)
 
         help_embed.add_field(
             name="$help",
@@ -331,7 +285,7 @@ async def on_message(message):
         )
 
         help_embed.set_footer(
-            text="Cuspydo • More features coming soon!"
+            text="Cuspydo by Debbie • More features coming soon!"
         )
 
         await message.channel.send(embed=help_embed)
@@ -374,7 +328,7 @@ async def on_message(message):
                 f'Sorry, "{prime_str}" is not a valid number. Try again.'
             )
 
-#timer section
+# timer section
 
     elif content.lower().startswith("$timer"):
         # Split the message into a maximum of three parts.
@@ -491,6 +445,111 @@ async def on_message(message):
                 "I couldn't retrieve the weather right now."
             )
 
+
+# Todo section
+
+    elif command.startswith("$todo add "):
+        task_text = message.content[len("$todo add "):].strip()
+
+        if not task_text:
+            await message.channel.send("Please include a task.")
+            return
+
+        if user_id not in todos:
+            todos[user_id] = []
+
+        todos[user_id].append({
+            "task": task_text,
+            "done": False
+        })
+
+        save_todos(todos)
+
+        await message.channel.send(
+            f"Added to your to-do list: **{task_text}**"
+        )
+
+    elif command == "$todo list":
+        user_todos = todos.get(user_id, [])
+
+        if not user_todos:
+            await message.channel.send(
+                "Your to-do list is empty."
+            )
+            return
+
+        response = "**Your To-Do List**\n\n"
+
+        for index, todo in enumerate(user_todos, start=1):
+            if todo["done"]:
+                status = "✅"
+            else:
+                status = "⬜"
+
+            response += f"{index}. {status} {todo['task']}\n"
+
+        await message.channel.send(response)
+
+    elif command.startswith("$todo done "):
+        task_number = message.content[len("$todo done "):].strip()
+
+        try:
+            index = int(task_number) - 1
+        except ValueError:
+            await message.channel.send(
+                "Please enter a valid task number."
+            )
+            return
+
+        user_todos = todos.get(user_id, [])
+
+        if index < 0 or index >= len(user_todos):
+            await message.channel.send(
+                "That task number doesn't exist."
+            )
+            return
+
+        user_todos[index]["done"] = True
+        save_todos(todos)
+
+        await message.channel.send(
+            f"Completed: **{user_todos[index]['task']}**"
+        )
+
+    elif command.startswith("$todo delete "):
+        task_number = message.content[len("$todo delete "):].strip()
+        try:
+            index = int(task_number) - 1
+        except ValueError:
+            await message.channel.send(
+                "Please enter a valid task number."
+            )
+            return
+
+        user_todos = todos.get(user_id, [])
+
+        if index < 0 or index >= len(user_todos):
+            await message.channel.send(
+                "That task number doesn't exist."
+            )
+            return
+
+        deleted_task = user_todos.pop(index)
+        save_todos(todos)
+
+        await message.channel.send(
+            f"Deleted: **{deleted_task['task']}**"
+        )
+
+
+    elif command == "$todo":
+        await message.channel.send(
+            "**Cuspydo To-Do Commands**\n\n"
+            "`$todo add <task>` - Add a task\n"
+            "`$todo list` - Show your tasks\n"
+            "`$todo done <number>` - Complete a task\n"
+            "`$todo delete <number>` - Delete a task"
+        )
 
 if __name__ == "__main__":
     token = os.getenv("CUSPYDO_TOKEN")
