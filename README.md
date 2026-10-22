@@ -59,6 +59,42 @@ python -m pip install -r requirements.txt
 
 Configuration is required before starting the bot.
 
+## Configuration
+
+Cuspydo requires a Discord bot token stored in the
+`CUSPYDO_TOKEN` environment variable.
+
+Set it in the terminal where you will run the bot.
+
+### Linux, macOS, or WSL
+
+```bash
+export CUSPYDO_TOKEN="YOUR_DISCORD_BOT_TOKEN"
+```
+
+### Windows PowerShell
+
+```powershell
+$env:CUSPYDO_TOKEN = "YOUR_DISCORD_BOT_TOKEN"
+```
+
+Replace the placeholder locally with your own bot token.
+Never put your real token in this README or commit it to Git.
+
+These commands set the variable for the current terminal session.
+
+## Running the Bot
+
+From the project folder, with your virtual environment active
+and your token configured, run:
+
+```bash
+python cuspydo.py
+```
+
+Keep the terminal open while using the bot.
+Press Ctrl+C to stop it.
+
 ## Deployment
 
 Cuspydo is hosted on a DigitalOcean server.
