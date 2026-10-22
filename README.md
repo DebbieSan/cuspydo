@@ -108,6 +108,21 @@ python cuspydo.py
 Keep the terminal open while using the bot.
 Press Ctrl+C to stop it.
 
+## Usage
+
+In a Discord server where Cuspydo is installed and running,
+use these commands in a channel the bot can access:
+
+| Command | Purpose |
+|---|---|
+| `$hello` | Get a greeting from the bot. |
+| `$weather San Francisco` | Request weather information for London. |
+| `$todo add Review Java notes` | Add a task to your personal to-do list. |
+| `$todo list` | Display your personal to-do list. |
+
+Replace `San Francisco` with your desired location and
+`Review Java notes` with your own task.
+
 ## Deployment
 
 Cuspydo is hosted on a DigitalOcean server.
