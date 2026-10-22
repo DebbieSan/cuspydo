@@ -83,6 +83,12 @@ Never put your real token in this README or commit it to Git.
 
 These commands set the variable for the current terminal session.
 
+### Weather Service
+
+Weather forecasts are provided by [Open-Meteo](https://open-meteo.com/).
+The public forecast API requires no API key for non-commercial use.
+An internet connection is required.
+
 ## Running the Bot
 
 From the project folder, with your virtual environment active
