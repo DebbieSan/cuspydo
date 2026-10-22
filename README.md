@@ -26,6 +26,13 @@ my own needs.
 
 ## Installation
 
+### Requirements
+
+- Python 3.12.3 (tested)
+- Git
+- A Discord bot token
+- An internet connection
+
 ### Download the project
 
 ```bash
