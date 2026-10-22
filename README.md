@@ -24,6 +24,41 @@ my own needs.
 - Python
 - Discord API
 
+## Installation
+
+### Download the project
+
+```bash
+git clone https://github.com/DebbieSan/cuspydo.git
+cd cuspydo
+```
+
+### Create a virtual environment
+
+On Linux, macOS, or WSL:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+On Windows PowerShell:
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+### Install dependencies
+
+With the virtual environment active:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Configuration is required before starting the bot.
+
 ## Deployment
 
 Cuspydo is hosted on a DigitalOcean server.
