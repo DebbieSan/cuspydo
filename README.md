@@ -19,6 +19,26 @@ my own needs.
 - Timers and countdowns.
 - Help information for available commands.
 
+## Cuspydo in Action
+
+### Personal To-Do Lists
+
+Add a task and display your list directly in Discord.
+
+![Cuspydo adding Review Java Notes and displaying the task list](assets/cuspydo-todo.png)
+
+### Weather Information
+
+Request weather conditions for a location.
+
+![Cuspydo displaying weather conditions for San Francisco](assets/cuspydo-weather.png)
+
+### A Simple Greeting
+
+Use `$hello` to check that the bot responds.
+
+![Cuspydo responding to the hello command](assets/cuspydo-hello.png)
+
 ## Built With
 
 - Python
